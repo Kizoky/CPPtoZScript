@@ -1,0 +1,193 @@
+class PortedActor : actor
+{
+	protected action void A_PortedLookEx(int flags, float minseedist, float maxseedist, float maxheardist, double fov, state Fseestate)
+	{
+		actor targ = NULL;
+		double dist;
+		if (fov == 0) fov = 180.;
+		LookExParams params;
+		params.Fov = fov;
+		params.minDist = minseedist;
+		params.maxDist = maxseedist;
+		params.maxHeardist = maxheardist;
+		params.flags = flags;
+		params.seestate = Fseestate;
+		
+		if (bINCONVERSATION)
+			return;
+		
+		// [RH] Set goal now if appropriate
+		if (special == Thing_SetGoal)
+		{
+			ActorIterator iterator = Level.CreateActorIterator(args[1], "PatrolPoint");
+			special = 0;
+			goal = iterator.Next ();
+			reactiontime = args[2] * TICRATE + Level.maptime;
+			if (args[3] == 0)
+				bChaseGoal = false;
+			else
+				bChaseGoal = true;
+		}
+		
+		threshold = 0;
+		
+		if (TIDtoHate != 0)
+		{
+			targ = target;
+		}
+		else
+		{
+			if (!(flags & LOF_NOSOUNDCHECK))
+			{
+				targ = Level.compatflags & COMPATF_SOUNDTARGET || bNOSECTOR ?
+					CurSector.SoundTarget : LastHeard;
+				
+				if (targ != NULL)
+				{
+					// [RH] If the soundtarget is dead, don't chase it
+					if (targ.Health <= 0)
+					{
+						targ = NULL;
+					}
+					else
+					{
+						dist = Distance2D (targ);
+						
+						// [KS] If the target is too far away, don't respond to the sound.
+						if (maxheardist && dist > maxheardist)
+						{
+							targ = NULL;
+							LastHeard = NULL;
+						}
+					}
+					
+				}
+				
+			}
+			
+			if (targ && targ.player && (targ.player.cheats & CF_NOTARGET))
+			{
+				return;
+			}
+		}
+		
+		// [RH] Andy Baker's stealth monsters
+		if (bSTEALTH)
+		{
+			visdir = -1;
+		}
+		
+		if (targ && targ.bSHOOTABLE)
+		{
+			if (IsFriend(targ))
+			{
+				if (!bSTANDSTILL)
+				{
+					if (!(flags & LOF_NOSIGHTCHECK))
+					{
+						// If we find a valid target here, the wandering logic should *not*
+						// be activated! If would cause the seestate to be set twice.
+						if (LookForPlayers(true, params))
+						{
+							seeyou(flags, Fseestate);
+						}
+						
+						// Let the self wander around aimlessly looking for a fight
+						if (!bINCHASE)
+						{
+							if (Fseestate)
+							{
+								SetState(Fseestate);
+							}
+							else
+							{
+								if (self.SeeState != NULL)
+								{
+									SetState(self.SeeState);
+								}
+								else
+								{
+									A_Wander();
+								}
+							}
+						}
+						
+					}
+				}
+			}
+			else
+			{
+				target = targ; //We already have a target?
+				
+				// [KS] The target can become ourselves in rare circumstances (like
+				// if we committed suicide), so if that's the case, just ignore it.
+				if (target == self) target = NULL;
+				
+				if (target != NULL)
+				{
+					if (bAMBUSH)
+					{
+						dist = Distance2D(target);
+						if (CheckSight(target, SF_SEEPASTBLOCKEVERYTHING &&
+							(!minseedist || dist > minseedist) &&
+							(!maxseedist || dist < maxseedist)))
+						{
+							seeyou(flags, seestate);
+						}
+					}
+					else
+						seeyou(flags, seestate);
+				}
+			}
+			
+			if (!(flags & LOF_NOSIGHTCHECK))
+			{
+				if (!LookForPlayers(true, params))
+					return;
+			}
+			else
+			{
+				return;
+			}
+			
+			// go into chase state
+		}
+		
+	}
+	
+	protected action void seeyou(int flags, state Fseestate)
+	{
+		// [RH] Don't start chasing after a goal if it isn't time yet.
+		if (target == goal)
+		{
+			if (reactiontime > Level.maptime)
+				target = NULL;
+		}
+		else if (SeeSound && !(flags & LOF_NOSEESOUND))
+		{
+			if (flags & LOF_FULLVOLSEESOUND)
+			{// full volume
+				A_StartSound(SeeSound, CHAN_VOICE, ATTN_NONE, 1, 0);
+			}
+			else
+			{
+				A_StartSound(SeeSound, CHAN_VOICE, ATTN_NORM, 1, 0);
+			}
+		}
+		
+		if (target && !bINCHASE)
+		{
+			if (!(flags & LOF_NOJUMP))
+			{
+				if (Fseestate)
+				{
+					SetState(fseestate);
+				}
+				else
+				{
+					SetState(self.SeeState);
+				}
+			}
+		}
+	}
+}
