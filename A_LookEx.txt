@@ -1,6 +1,7 @@
+// https://github.com/coelckers/gzdoom/blob/master/src/playsim/p_enemy.cpp#L1869
 class PortedActor : actor
 {
-	protected action void A_PortedLookEx(int flags, float minseedist, float maxseedist, float maxheardist, double fov, state Fseestate)
+	action void A_PortedLookEx(int flags, float minseedist, float maxseedist, float maxheardist, double fov, state Fseestate)
 	{
 		actor targ = NULL;
 		double dist;
@@ -155,7 +156,7 @@ class PortedActor : actor
 		
 	}
 	
-	protected action void seeyou(int flags, state Fseestate)
+	action void seeyou(int flags, state Fseestate)
 	{
 		// [RH] Don't start chasing after a goal if it isn't time yet.
 		if (target == goal)

@@ -1,3 +1,4 @@
+// https://github.com/coelckers/gzdoom/blob/master/src/playsim/p_enemy.cpp#L2192
 class PortedActor : Actor
 {
 	const CLASS_BOSS_STRAFE_RANGE = 64*10;
