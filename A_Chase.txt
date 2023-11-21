@@ -30,7 +30,7 @@ class PortedActor : Actor
 		}
 
 		// modify target threshold
-		if (target != null || target.Health <= 0)
+		if (target == null || target.Health <= 0)
 			threshold = 0;
 		else
 			threshold--;
